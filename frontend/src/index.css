@@ -1037,6 +1037,49 @@ body::before {
 }
 
 /* ------------------------------------------------------------------ */
+/* Saved accounts (demo log-in list on the setup screen)               */
+/* ------------------------------------------------------------------ */
+.saved-accounts {
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(0, 242, 254, 0.08);
+}
+
+.saved-account-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 242, 254, 0.22);
+  background: rgba(0, 242, 254, 0.05);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.saved-account-btn:hover:not(:disabled) {
+  border-color: var(--color-cyan);
+  background: rgba(0, 242, 254, 0.1);
+}
+
+.saved-account-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.saved-account-id {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------------ */
 /* Reduced motion: keep everything instant and still                   */
 /* ------------------------------------------------------------------ */
 @media (prefers-reduced-motion: reduce) {

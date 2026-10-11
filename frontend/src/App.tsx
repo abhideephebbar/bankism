@@ -361,9 +361,9 @@ export const App: React.FC = () => {
     [applyAccount]
   );
 
-  // Back to the setup screen to create another simulated account. Existing
-  // accounts (here and server-side) are untouched and remain switchable.
-  const handleNewAccount = useCallback(() => {
+  // Log out: back to the setup screen. The account stays in the session's
+  // used-account list (and server-side) so it can be logged back into.
+  const handleLogout = useCallback(() => {
     applyAccount(null);
     setAccountStatus('none');
     setAccountError(null);
@@ -590,7 +590,7 @@ export const App: React.FC = () => {
     onRetryHealth: handleRetryHealth,
     onCreateAccount: handleCreateAccount,
     onSelectAccount: handleSelectAccount,
-    onNewAccount: handleNewAccount,
+    onLogout: handleLogout,
     usedAccounts,
     onUseSampleProfile: handleUseSampleProfile,
     onReplayBoot: handleReplayBoot,
@@ -664,7 +664,7 @@ interface AppShellProps {
   onRetryHealth: () => void;
   onCreateAccount: (displayName: string, initialBalance: string) => Promise<void>;
   onSelectAccount: (userId: string) => void;
-  onNewAccount: () => void;
+  onLogout: () => void;
   usedAccounts: StoredAccountRef[];
   onUseSampleProfile: (userId: string) => void;
   onReplayBoot: () => void;
@@ -712,7 +712,7 @@ const AppShell: React.FC<AppShellProps> = ({
   onRetryHealth,
   onCreateAccount,
   onSelectAccount,
-  onNewAccount,
+  onLogout,
   usedAccounts,
   onUseSampleProfile,
   onReplayBoot,
@@ -738,7 +738,7 @@ const AppShell: React.FC<AppShellProps> = ({
         onReplayBoot={onReplayBoot}
         onUseSampleProfile={onUseSampleProfile}
         onSelectAccount={onSelectAccount}
-        onNewAccount={onNewAccount}
+        onLogout={onLogout}
         onReplayTour={onReplayTour}
         onAttackDemo={onAttackDemo}
         usedAccounts={usedAccounts}
@@ -838,6 +838,8 @@ const AppShell: React.FC<AppShellProps> = ({
                 isCreating={isCreatingAccount}
                 errorMessage={accountError}
                 missingAccountNotice={accountStatus === 'missing'}
+                savedAccounts={usedAccounts}
+                onSelectAccount={onSelectAccount}
               />
             )}
           </div>

@@ -12,7 +12,7 @@ interface HeaderStatusProps {
   onReplayBoot?: () => void;
   onUseSampleProfile?: (userId: string) => void;
   onSelectAccount?: (userId: string) => void;
-  onNewAccount?: () => void;
+  onLogout?: () => void;
   onReplayTour?: () => void;
   onAttackDemo?: () => void;
   usedAccounts?: AccountRef[];
@@ -24,14 +24,14 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
   onReplayBoot,
   onUseSampleProfile,
   onSelectAccount,
-  onNewAccount,
+  onLogout,
   onReplayTour,
   onAttackDemo,
   usedAccounts = [],
   activeAccountId = null,
 }) => {
   const showMenu = Boolean(
-    onReplayBoot && onUseSampleProfile && onSelectAccount && onNewAccount
+    onReplayBoot && onUseSampleProfile && onSelectAccount && onLogout
   );
 
   return (
@@ -119,7 +119,7 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
             onReplayBoot={onReplayBoot as () => void}
             onUseSampleProfile={onUseSampleProfile as (id: string) => void}
             onSelectAccount={onSelectAccount as (id: string) => void}
-            onNewAccount={onNewAccount as () => void}
+            onLogout={onLogout as () => void}
             onReplayTour={onReplayTour}
             onAttackDemo={onAttackDemo}
             usedAccounts={usedAccounts}

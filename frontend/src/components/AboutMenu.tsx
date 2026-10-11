@@ -10,7 +10,7 @@ interface AboutMenuProps {
   onReplayBoot: () => void;
   onUseSampleProfile: (userId: string) => void;
   onSelectAccount: (userId: string) => void;
-  onNewAccount: () => void;
+  onLogout: () => void;
   onReplayTour?: () => void;
   onAttackDemo?: () => void;
   usedAccounts: AccountRef[];
@@ -18,16 +18,16 @@ interface AboutMenuProps {
 }
 
 /**
- * Small header menu holding secondary actions: switching between accounts
- * used this session, seeded sample profiles, creating a new account, and
- * replaying the intro. Keeps the main interface clean while leaving these
- * capabilities discoverable.
+ * Small header menu holding secondary actions: logging out, switching
+ * between accounts used this session, seeded sample profiles, the attack
+ * demo, and replaying the tour/intro. Keeps the main interface clean while
+ * leaving these capabilities discoverable.
  */
 export const AboutMenu: React.FC<AboutMenuProps> = ({
   onReplayBoot,
   onUseSampleProfile,
   onSelectAccount,
-  onNewAccount,
+  onLogout,
   onReplayTour,
   onAttackDemo,
   usedAccounts,
@@ -79,10 +79,10 @@ export const AboutMenu: React.FC<AboutMenuProps> = ({
             className="about-menu-item"
             onClick={() => {
               setIsOpen(false);
-              onNewAccount();
+              onLogout();
             }}
           >
-            Create a new account
+            Log out
           </button>
 
           {switchableAccounts.length > 0 && (
