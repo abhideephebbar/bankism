@@ -27,7 +27,10 @@ import { ProcessResultPanel } from './components/ProcessResultPanel';
 import { BootSequence } from './components/BootSequence';
 import { AccountSetup, accountCreationErrorMessage } from './components/AccountSetup';
 import { AccountSummaryCard } from './components/AccountSummaryCard';
+import { WelcomeModal } from './components/WelcomeModal';
+import { TourOverlay, TOUR_STEP_COUNT } from './components/TourOverlay';
 import { SAMPLE_PROFILES } from './config/demoUsers';
+import { DEMO_SCENARIOS } from './config/demoScenarios';
 
 const SAMPLE_PROFILE_IDS = new Set(SAMPLE_PROFILES.map((profile) => profile.id));
 
@@ -137,6 +140,35 @@ export const App: React.FC = () => {
   const [usedAccounts, setUsedAccounts] = useState<StoredAccountRef[]>(() =>
     readStoredAccountList().filter((ref) => !SAMPLE_PROFILE_IDS.has(ref.user_id))
   );
+
+  // First-run onboarding: prompt once per session after an account is active.
+  const [welcomeDone, setWelcomeDone] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('bankism_welcome_done') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [tourStep, setTourStep] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (account && !welcomeDone) {
+      setWelcomeOpen(true);
+    } else {
+      setWelcomeOpen(false);
+    }
+  }, [account, welcomeDone]);
+
+  const dismissWelcome = useCallback(() => {
+    setWelcomeOpen(false);
+    setWelcomeDone(true);
+    try {
+      sessionStorage.setItem('bankism_welcome_done', 'true');
+    } catch {
+      // ignore storage failure
+    }
+  }, []);
 
   // Form inputs
   const [message, setMessage] = useState('send 500 to Priya');
@@ -359,69 +391,101 @@ export const App: React.FC = () => {
   }, [userId]);
 
   // Handle evaluation submission
-  const handleEvaluate = useCallback(async () => {
-    if (!userId) return;
+  const submitEvaluation = useCallback(
+    async (requestMessage: string, requestMemo: string) => {
+      if (!userId) return;
 
-    // Abort any in-flight evaluation
-    if (activeEvalAbortControllerRef.current) {
-      activeEvalAbortControllerRef.current.abort();
-    }
-
-    const abortController = new AbortController();
-    activeEvalAbortControllerRef.current = abortController;
-
-    const currentEvalId = ++evalCounterRef.current;
-    const trimmedMessage = message.trim();
-    const trimmedMemo = memo.trim();
-
-    // Freeze snapshot at submission time
-    const newSnapshot: RequestSnapshot = {
-      message: trimmedMessage,
-      memo: trimmedMemo,
-      userId,
-      timestamp: new Date().toISOString(),
-      requestId: currentEvalId,
-    };
-    setSnapshot(newSnapshot);
-
-    setEvalUiStatus('IN_FLIGHT');
-    setEvalErrorMessage(null);
-
-    const payload = buildEvaluatePayload(trimmedMessage, trimmedMemo, userId);
-
-    try {
-      const result = await evaluateRequest(payload, abortController.signal);
-
-      // Ignore superseded evaluations
-      if (evalCounterRef.current !== currentEvalId) {
-        return;
+      // Abort any in-flight evaluation
+      if (activeEvalAbortControllerRef.current) {
+        activeEvalAbortControllerRef.current.abort();
       }
 
-      setVerdict(result);
-      setEvalUiStatus('SUCCESS');
-    } catch (err: unknown) {
-      if (evalCounterRef.current !== currentEvalId) {
-        return;
-      }
+      const abortController = new AbortController();
+      activeEvalAbortControllerRef.current = abortController;
 
-      if (err instanceof ApiHttpError) {
-        setEvalUiStatus('REQUEST_REJECTED');
-        setEvalErrorMessage(err.detail);
-      } else if (err instanceof ApiSystemError) {
-        setEvalUiStatus('SYSTEM_ERROR');
-        setEvalErrorMessage(err.message);
-      } else {
-        setEvalUiStatus('SYSTEM_ERROR');
-        setEvalErrorMessage(
-          err instanceof Error ? err.message : 'Evaluation service error'
-        );
+      const currentEvalId = ++evalCounterRef.current;
+      const trimmedMessage = requestMessage.trim();
+      const trimmedMemo = requestMemo.trim();
+
+      // Freeze snapshot at submission time
+      const newSnapshot: RequestSnapshot = {
+        message: trimmedMessage,
+        memo: trimmedMemo,
+        userId,
+        timestamp: new Date().toISOString(),
+        requestId: currentEvalId,
+      };
+      setSnapshot(newSnapshot);
+
+      setEvalUiStatus('IN_FLIGHT');
+      setEvalErrorMessage(null);
+
+      const payload = buildEvaluatePayload(trimmedMessage, trimmedMemo, userId);
+
+      try {
+        const result = await evaluateRequest(payload, abortController.signal);
+
+        // Ignore superseded evaluations
+        if (evalCounterRef.current !== currentEvalId) {
+          return;
+        }
+
+        setVerdict(result);
+        setEvalUiStatus('SUCCESS');
+      } catch (err: unknown) {
+        if (evalCounterRef.current !== currentEvalId) {
+          return;
+        }
+
+        if (err instanceof ApiHttpError) {
+          setEvalUiStatus('REQUEST_REJECTED');
+          setEvalErrorMessage(err.detail);
+        } else if (err instanceof ApiSystemError) {
+          setEvalUiStatus('SYSTEM_ERROR');
+          setEvalErrorMessage(err.message);
+        } else {
+          setEvalUiStatus('SYSTEM_ERROR');
+          setEvalErrorMessage(
+            err instanceof Error ? err.message : 'Evaluation service error'
+          );
+        }
+      } finally {
+        if (evalCounterRef.current === currentEvalId) {
+          activeEvalAbortControllerRef.current = null;
+        }
       }
-    } finally {
-      if (evalCounterRef.current === currentEvalId) {
-        activeEvalAbortControllerRef.current = null;
-      }
-    }
-  }, [message, memo, userId]);
+    },
+    [userId]
+  );
+
+  const handleEvaluate = useCallback(() => {
+    submitEvaluation(message, memo);
+  }, [submitEvaluation, message, memo]);
+
+  // Onboarding: one-click attack demo — loads a hidden-in-the-memo attack and
+  // evaluates it so the interception moment plays immediately.
+  const handleWelcomeDemo = useCallback(() => {
+    const scenario = DEMO_SCENARIOS.find((s) => s.id === 'memo-injection');
+    if (!scenario) return;
+    dismissWelcome();
+    setMessage(scenario.message);
+    setMemo(scenario.memo || '');
+    void submitEvaluation(scenario.message, scenario.memo || '');
+  }, [dismissWelcome, submitEvaluation]);
+
+  const handleStartTour = useCallback(() => {
+    setWelcomeOpen(false);
+    setTourStep(0);
+  }, []);
+
+  const handleEndTour = useCallback(() => {
+    setTourStep(null);
+    dismissWelcome();
+  }, [dismissWelcome]);
+
+  const handleReplayTour = useCallback(() => {
+    setTourStep(0);
+  }, []);
 
   // Handle process submission (state-changing; never aborted once sent)
   const handleConfirmProcess = useCallback(async () => {
@@ -521,6 +585,15 @@ export const App: React.FC = () => {
     usedAccounts,
     onUseSampleProfile: handleUseSampleProfile,
     onReplayBoot: handleReplayBoot,
+    onReplayTour: handleReplayTour,
+    welcomeOpen,
+    tourStep,
+    onWelcomeTour: handleStartTour,
+    onWelcomeDemo: handleWelcomeDemo,
+    onWelcomeSkip: dismissWelcome,
+    onTourNext: () => setTourStep((s) => Math.min((s ?? 0) + 1, TOUR_STEP_COUNT - 1)),
+    onTourBack: () => setTourStep((s) => Math.max((s ?? 0) - 1, 0)),
+    onTourEnd: handleEndTour,
     onConfirmProcess: handleConfirmProcess,
     onCloseModal: () => setModalState({ isOpen: false, mode: 'normal' }),
     onClearProcess: () => {
@@ -584,6 +657,15 @@ interface AppShellProps {
   usedAccounts: StoredAccountRef[];
   onUseSampleProfile: (userId: string) => void;
   onReplayBoot: () => void;
+  onReplayTour: () => void;
+  welcomeOpen: boolean;
+  tourStep: number | null;
+  onWelcomeTour: () => void;
+  onWelcomeDemo: () => void;
+  onWelcomeSkip: () => void;
+  onTourNext: () => void;
+  onTourBack: () => void;
+  onTourEnd: () => void;
   onConfirmProcess: () => void;
   onCloseModal: () => void;
   onClearProcess: () => void;
@@ -621,6 +703,15 @@ const AppShell: React.FC<AppShellProps> = ({
   usedAccounts,
   onUseSampleProfile,
   onReplayBoot,
+  onReplayTour,
+  welcomeOpen,
+  tourStep,
+  onWelcomeTour,
+  onWelcomeDemo,
+  onWelcomeSkip,
+  onTourNext,
+  onTourBack,
+  onTourEnd,
   onConfirmProcess,
   onCloseModal,
   onClearProcess,
@@ -633,6 +724,7 @@ const AppShell: React.FC<AppShellProps> = ({
         onUseSampleProfile={onUseSampleProfile}
         onSelectAccount={onSelectAccount}
         onNewAccount={onNewAccount}
+        onReplayTour={onReplayTour}
         usedAccounts={usedAccounts}
         activeAccountId={account?.user_id ?? null}
       />
@@ -665,7 +757,7 @@ const AppShell: React.FC<AppShellProps> = ({
         )}
 
         {/* Central AI core — the consistent visual anchor */}
-        <section className="core-hero" aria-label="Bankism security core">
+        <section className="core-hero" id="tour-core" aria-label="Bankism security core">
           <AICoreRadar
             state={coreState}
             decision={verdict?.decision}
@@ -681,29 +773,33 @@ const AppShell: React.FC<AppShellProps> = ({
           <>
             {/* Request controls + current security result */}
             <div className="workspace-grid">
-              <CommandConsole
-                message={message}
-                memo={memo}
-                onMessageChange={onMessageChange}
-                onMemoChange={onMemoChange}
-                onEvaluate={onEvaluate}
-                onOpenProcessModal={onOpenProcessModal}
-                onOpenExecutionBoundaryModal={onOpenExecutionBoundaryModal}
-                isEvaluating={evalUiStatus === 'IN_FLIGHT'}
-                isProcessing={processUiStatus === 'IN_FLIGHT'}
-                latestDecision={verdict?.decision || null}
-                isVerdictStale={isVerdictStale}
-              />
+              <div id="tour-console">
+                <CommandConsole
+                  message={message}
+                  memo={memo}
+                  onMessageChange={onMessageChange}
+                  onMemoChange={onMemoChange}
+                  onEvaluate={onEvaluate}
+                  onOpenProcessModal={onOpenProcessModal}
+                  onOpenExecutionBoundaryModal={onOpenExecutionBoundaryModal}
+                  isEvaluating={evalUiStatus === 'IN_FLIGHT'}
+                  isProcessing={processUiStatus === 'IN_FLIGHT'}
+                  latestDecision={verdict?.decision || null}
+                  isVerdictStale={isVerdictStale}
+                />
+              </div>
 
-              <VerdictPanel
-                verdict={verdict}
-                uiStatus={evalUiStatus}
-                errorMessage={evalErrorMessage}
-                isStale={isVerdictStale}
-                onRetry={onEvaluate}
-                rawResponseJson={verdict}
-                snapshot={snapshot}
-              />
+              <div id="tour-result">
+                <VerdictPanel
+                  verdict={verdict}
+                  uiStatus={evalUiStatus}
+                  errorMessage={evalErrorMessage}
+                  isStale={isVerdictStale}
+                  onRetry={onEvaluate}
+                  rawResponseJson={verdict}
+                  snapshot={snapshot}
+                />
+              </div>
             </div>
 
             {/* Appears only after a process request has been made */}
@@ -741,6 +837,23 @@ const AppShell: React.FC<AppShellProps> = ({
         onCancel={onCloseModal}
         isProcessing={processUiStatus === 'IN_FLIGHT'}
       />
+
+      {welcomeOpen && (
+        <WelcomeModal
+          onTour={onWelcomeTour}
+          onDemo={onWelcomeDemo}
+          onSkip={onWelcomeSkip}
+        />
+      )}
+
+      {tourStep !== null && (
+        <TourOverlay
+          step={tourStep}
+          onNext={onTourNext}
+          onBack={onTourBack}
+          onEnd={onTourEnd}
+        />
+      )}
 
       <footer
         style={{

@@ -13,6 +13,7 @@ interface HeaderStatusProps {
   onUseSampleProfile?: (userId: string) => void;
   onSelectAccount?: (userId: string) => void;
   onNewAccount?: () => void;
+  onReplayTour?: () => void;
   usedAccounts?: AccountRef[];
   activeAccountId?: string | null;
 }
@@ -23,6 +24,7 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
   onUseSampleProfile,
   onSelectAccount,
   onNewAccount,
+  onReplayTour,
   usedAccounts = [],
   activeAccountId = null,
 }) => {
@@ -116,6 +118,7 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
             onUseSampleProfile={onUseSampleProfile as (id: string) => void}
             onSelectAccount={onSelectAccount as (id: string) => void}
             onNewAccount={onNewAccount as () => void}
+            onReplayTour={onReplayTour}
             usedAccounts={usedAccounts}
             activeAccountId={activeAccountId}
           />

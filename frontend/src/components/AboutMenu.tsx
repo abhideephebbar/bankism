@@ -11,6 +11,7 @@ interface AboutMenuProps {
   onUseSampleProfile: (userId: string) => void;
   onSelectAccount: (userId: string) => void;
   onNewAccount: () => void;
+  onReplayTour?: () => void;
   usedAccounts: AccountRef[];
   activeAccountId: string | null;
 }
@@ -26,6 +27,7 @@ export const AboutMenu: React.FC<AboutMenuProps> = ({
   onUseSampleProfile,
   onSelectAccount,
   onNewAccount,
+  onReplayTour,
   usedAccounts,
   activeAccountId,
 }) => {
@@ -55,7 +57,7 @@ export const AboutMenu: React.FC<AboutMenuProps> = ({
   );
 
   return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
+    <div ref={containerRef} id="tour-about" style={{ position: 'relative' }}>
       <button
         type="button"
         className="btn btn-secondary"
@@ -118,6 +120,20 @@ export const AboutMenu: React.FC<AboutMenuProps> = ({
               <span className="about-menu-item-meta">{profile.seededBalance} INR</span>
             </button>
           ))}
+
+          {onReplayTour && (
+            <button
+              type="button"
+              role="menuitem"
+              className="about-menu-item"
+              onClick={() => {
+                setIsOpen(false);
+                onReplayTour();
+              }}
+            >
+              Replay tour
+            </button>
+          )}
 
           <button
             type="button"
