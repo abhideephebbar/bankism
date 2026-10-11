@@ -71,6 +71,10 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         *_EXTRA_ORIGINS,
     ],
+    # The hosted frontend plus all of its Netlify deploy previews
+    # (https://<hash>--bankism.netlify.app). Starlette does not support
+    # wildcards inside allow_origins, so a regex is used instead.
+    allow_origin_regex=r"https://([a-z0-9-]+--)?bankism\.netlify\.app",
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "X-Demo-User"],
 )
