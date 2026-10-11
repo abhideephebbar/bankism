@@ -1,0 +1,15 @@
+name: keepalive
+
+# Pings the hosted Bankism API every 10 minutes so the free Render instance
+# does not spin down between demos. Manual trigger included for convenience.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /health
+        run: curl -sf -m 30 https://bankism-api-um72.onrender.com/health

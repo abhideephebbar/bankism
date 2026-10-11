@@ -1,0 +1,13 @@
+# Render blueprint: hosts the Bankism FastAPI backend as a free web service.
+# Deploy via dashboard.render.com -> New -> Blueprint, or push to a
+# Git-connected Render account. The frontend is hosted separately (Netlify)
+# and its origin is added to CORS via BANKISM_CORS_ORIGINS.
+services:
+  - type: web
+    name: bankism-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
