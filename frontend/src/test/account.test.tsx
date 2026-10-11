@@ -204,7 +204,7 @@ describe('Account creation flow', () => {
     expect(screen.getByText('750.00')).toBeInTheDocument();
   });
 
-  it('App: "Create a new account" returns to the setup screen without losing the used-account list', async () => {
+  it('App: log out returns to the setup screen without losing the used-account list', async () => {
     sessionStorage.setItem('bankism_boot_completed', 'true');
 
     globalThis.fetch = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
@@ -223,16 +223,17 @@ describe('Account creation flow', () => {
     fireEvent.click(screen.getByRole('button', { name: /create simulated account/i }));
     await waitFor(() => expect(screen.getByText('Nisha')).toBeInTheDocument());
 
-    // About -> Create a new account -> setup screen
+    // About -> Log out -> setup screen
     fireEvent.click(screen.getByRole('button', { name: /^about$/i }));
-    fireEvent.click(screen.getByRole('menuitem', { name: /create a new account/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^log out$/i }));
     expect(
       await screen.findByRole('button', { name: /create simulated account/i })
     ).toBeInTheDocument();
 
-    // The previously created account is still switchable
-    fireEvent.click(screen.getByRole('button', { name: /^about$/i }));
-    expect(screen.getByRole('menuitem', { name: /nisha/i })).toBeInTheDocument();
+    // The logged-out account is offered for quick demo log-in
+    expect(screen.getByText(/welcome back/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /log in as nisha/i }));
+    await waitFor(() => expect(screen.getByText('Nisha')).toBeInTheDocument());
   });
 });
 

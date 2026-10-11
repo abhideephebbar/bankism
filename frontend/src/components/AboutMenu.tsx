@@ -10,22 +10,26 @@ interface AboutMenuProps {
   onReplayBoot: () => void;
   onUseSampleProfile: (userId: string) => void;
   onSelectAccount: (userId: string) => void;
-  onNewAccount: () => void;
+  onLogout: () => void;
+  onReplayTour?: () => void;
+  onAttackDemo?: () => void;
   usedAccounts: AccountRef[];
   activeAccountId: string | null;
 }
 
 /**
- * Small header menu holding secondary actions: switching between accounts
- * used this session, seeded sample profiles, creating a new account, and
- * replaying the intro. Keeps the main interface clean while leaving these
- * capabilities discoverable.
+ * Small header menu holding secondary actions: logging out, switching
+ * between accounts used this session, seeded sample profiles, the attack
+ * demo, and replaying the tour/intro. Keeps the main interface clean while
+ * leaving these capabilities discoverable.
  */
 export const AboutMenu: React.FC<AboutMenuProps> = ({
   onReplayBoot,
   onUseSampleProfile,
   onSelectAccount,
-  onNewAccount,
+  onLogout,
+  onReplayTour,
+  onAttackDemo,
   usedAccounts,
   activeAccountId,
 }) => {
@@ -55,7 +59,7 @@ export const AboutMenu: React.FC<AboutMenuProps> = ({
   );
 
   return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
+    <div ref={containerRef} id="tour-about" style={{ position: 'relative' }}>
       <button
         type="button"
         className="btn btn-secondary"
@@ -75,10 +79,10 @@ export const AboutMenu: React.FC<AboutMenuProps> = ({
             className="about-menu-item"
             onClick={() => {
               setIsOpen(false);
-              onNewAccount();
+              onLogout();
             }}
           >
-            Create a new account
+            Log out
           </button>
 
           {switchableAccounts.length > 0 && (
@@ -118,6 +122,34 @@ export const AboutMenu: React.FC<AboutMenuProps> = ({
               <span className="about-menu-item-meta">{profile.seededBalance} INR</span>
             </button>
           ))}
+
+          {onReplayTour && (
+            <button
+              type="button"
+              role="menuitem"
+              className="about-menu-item"
+              onClick={() => {
+                setIsOpen(false);
+                onReplayTour();
+              }}
+            >
+              Replay tour
+            </button>
+          )}
+
+          {onAttackDemo && (
+            <button
+              type="button"
+              role="menuitem"
+              className="about-menu-item"
+              onClick={() => {
+                setIsOpen(false);
+                onAttackDemo();
+              }}
+            >
+              Run attack demo
+            </button>
+          )}
 
           <button
             type="button"

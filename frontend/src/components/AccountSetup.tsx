@@ -1,12 +1,20 @@
 import React, { useState } from 'react';
 import { ApiHttpError, ApiSystemError } from '../services/api';
 
+interface SavedAccount {
+  user_id: string;
+  display_name: string;
+}
+
 interface AccountSetupProps {
   onCreate: (displayName: string, initialBalance: string) => Promise<void>;
   isCreating: boolean;
   errorMessage: string | null;
   /** Shown when a previously saved account no longer exists on the backend. */
   missingAccountNotice?: boolean;
+  /** Accounts used earlier this session, offered for quick demo log-in. */
+  savedAccounts?: SavedAccount[];
+  onSelectAccount?: (userId: string) => void;
 }
 
 const BALANCE_RE = /^\d+(\.\d{1,2})?$/;
@@ -16,6 +24,8 @@ export const AccountSetup: React.FC<AccountSetupProps> = ({
   isCreating,
   errorMessage,
   missingAccountNotice = false,
+  savedAccounts = [],
+  onSelectAccount,
 }) => {
   const [displayName, setDisplayName] = useState('');
   const [initialBalance, setInitialBalance] = useState('');
@@ -77,6 +87,31 @@ export const AccountSetup: React.FC<AccountSetupProps> = ({
         >
           Your previous simulated account is no longer available — the demo store
           resets when the server restarts. Create a new one to continue.
+        </div>
+      )}
+
+      {savedAccounts.length > 0 && onSelectAccount && (
+        <div className="saved-accounts" style={{ marginBottom: 20 }}>
+          <div className="input-label" style={{ marginBottom: 8 }}>
+            <span>Welcome back</span>
+            <span className="text-muted" style={{ fontSize: 10 }}>
+              demo log in, no password
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {savedAccounts.map((acc) => (
+              <button
+                key={acc.user_id}
+                type="button"
+                className="saved-account-btn"
+                onClick={() => onSelectAccount(acc.user_id)}
+                disabled={isCreating}
+              >
+                <span>Log in as {acc.display_name || acc.user_id}</span>
+                <span className="saved-account-id">{acc.user_id}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

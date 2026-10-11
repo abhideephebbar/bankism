@@ -948,6 +948,138 @@ body::before {
 }
 
 /* ------------------------------------------------------------------ */
+/* Onboarding: welcome prompt + spotlight tour                         */
+/* ------------------------------------------------------------------ */
+.tour-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 5, 9, 0.55);
+  backdrop-filter: blur(2px);
+  /* Below the sticky header (z-index 50) so header chrome and the About
+     target stay visible; spotlighted targets rise above at z-index 60. */
+  z-index: 45;
+  pointer-events: none;
+  animation: fadeIn 300ms var(--ease-out) both;
+}
+
+.tour-card {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  width: min(480px, calc(100vw - 32px));
+  background: var(--bg-secondary);
+  border: 1px solid rgba(0, 242, 254, 0.35);
+  border-radius: 12px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.55);
+  padding: 18px 20px;
+  z-index: 950;
+  animation: modalIn 320ms var(--ease-out) both;
+}
+
+.tour-progress {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.tour-dot {
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(0, 242, 254, 0.2);
+  transition: background var(--transition-fast);
+}
+
+.tour-dot.active {
+  background: var(--color-cyan);
+  box-shadow: 0 0 8px rgba(0, 242, 254, 0.5);
+}
+
+.tour-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-cyan);
+  letter-spacing: 0.4px;
+  margin-bottom: 6px;
+}
+
+.tour-body {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+}
+
+.tour-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.tour-spotlight {
+  position: relative;
+  z-index: 60;
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 2px rgba(0, 242, 254, 0.55),
+    0 0 32px rgba(0, 242, 254, 0.25);
+  animation: spotlightPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes spotlightPulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(0, 242, 254, 0.55), 0 0 24px rgba(0, 242, 254, 0.2); }
+  50% { box-shadow: 0 0 0 2px rgba(0, 242, 254, 0.8), 0 0 40px rgba(0, 242, 254, 0.35); }
+}
+
+.welcome-dialog {
+  animation: modalIn 320ms var(--ease-out) both;
+}
+
+/* ------------------------------------------------------------------ */
+/* Saved accounts (demo log-in list on the setup screen)               */
+/* ------------------------------------------------------------------ */
+.saved-accounts {
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(0, 242, 254, 0.08);
+}
+
+.saved-account-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 242, 254, 0.22);
+  background: rgba(0, 242, 254, 0.05);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.saved-account-btn:hover:not(:disabled) {
+  border-color: var(--color-cyan);
+  background: rgba(0, 242, 254, 0.1);
+}
+
+.saved-account-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.saved-account-id {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------------ */
 /* Reduced motion: keep everything instant and still                   */
 /* ------------------------------------------------------------------ */
 @media (prefers-reduced-motion: reduce) {
