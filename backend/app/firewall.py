@@ -38,6 +38,7 @@ from .schemas import (
     TransactionDetails,
     Verdict,
 )
+from .threat_dictionaries import BLOCKED_PHRASES, BLOCKED_WORDS
 
 # --------------------------------------------------------------------------- #
 # Tunable safety bounds
@@ -354,6 +355,21 @@ class HeuristicThreatAnalyzer(ThreatAnalyzer):
                         categories.append(category)
                     signals.append(f"{category.value.lower()}_pattern")
                     break  # one hit per category is enough
+
+        # Dictionary layer: plain word/phrase lists (see threat_dictionaries).
+        # Adds the same category signals on top of regex matches — never
+        # removes or weakens them.
+        tokens = set(folded.split())
+        for category, phrases in BLOCKED_PHRASES.items():
+            if any(phrase in folded for phrase in phrases):
+                if category not in categories:
+                    categories.append(category)
+                signals.append(f"{category.value.lower()}_dictionary")
+        for category, words in BLOCKED_WORDS.items():
+            if words & tokens:
+                if category not in categories:
+                    categories.append(category)
+                signals.append(f"{category.value.lower()}_dictionary")
 
         if not categories:
             return ThreatResult(
