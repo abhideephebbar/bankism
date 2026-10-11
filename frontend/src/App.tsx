@@ -487,6 +487,15 @@ export const App: React.FC = () => {
     setTourStep(0);
   }, []);
 
+  const handleRestartTour = useCallback(() => {
+    setTourStep(0);
+  }, []);
+
+  // Attack demo is also available on demand from the About menu.
+  const handleMenuAttackDemo = useCallback(() => {
+    handleWelcomeDemo();
+  }, [handleWelcomeDemo]);
+
   // Handle process submission (state-changing; never aborted once sent)
   const handleConfirmProcess = useCallback(async () => {
     if (!userId) return;
@@ -586,6 +595,7 @@ export const App: React.FC = () => {
     onUseSampleProfile: handleUseSampleProfile,
     onReplayBoot: handleReplayBoot,
     onReplayTour: handleReplayTour,
+    onAttackDemo: handleMenuAttackDemo,
     welcomeOpen,
     tourStep,
     onWelcomeTour: handleStartTour,
@@ -593,6 +603,7 @@ export const App: React.FC = () => {
     onWelcomeSkip: dismissWelcome,
     onTourNext: () => setTourStep((s) => Math.min((s ?? 0) + 1, TOUR_STEP_COUNT - 1)),
     onTourBack: () => setTourStep((s) => Math.max((s ?? 0) - 1, 0)),
+    onTourRestart: handleRestartTour,
     onTourEnd: handleEndTour,
     onConfirmProcess: handleConfirmProcess,
     onCloseModal: () => setModalState({ isOpen: false, mode: 'normal' }),
@@ -658,6 +669,7 @@ interface AppShellProps {
   onUseSampleProfile: (userId: string) => void;
   onReplayBoot: () => void;
   onReplayTour: () => void;
+  onAttackDemo: () => void;
   welcomeOpen: boolean;
   tourStep: number | null;
   onWelcomeTour: () => void;
@@ -665,6 +677,7 @@ interface AppShellProps {
   onWelcomeSkip: () => void;
   onTourNext: () => void;
   onTourBack: () => void;
+  onTourRestart: () => void;
   onTourEnd: () => void;
   onConfirmProcess: () => void;
   onCloseModal: () => void;
@@ -704,6 +717,7 @@ const AppShell: React.FC<AppShellProps> = ({
   onUseSampleProfile,
   onReplayBoot,
   onReplayTour,
+  onAttackDemo,
   welcomeOpen,
   tourStep,
   onWelcomeTour,
@@ -711,6 +725,7 @@ const AppShell: React.FC<AppShellProps> = ({
   onWelcomeSkip,
   onTourNext,
   onTourBack,
+  onTourRestart,
   onTourEnd,
   onConfirmProcess,
   onCloseModal,
@@ -725,6 +740,7 @@ const AppShell: React.FC<AppShellProps> = ({
         onSelectAccount={onSelectAccount}
         onNewAccount={onNewAccount}
         onReplayTour={onReplayTour}
+        onAttackDemo={onAttackDemo}
         usedAccounts={usedAccounts}
         activeAccountId={account?.user_id ?? null}
       />
@@ -851,6 +867,7 @@ const AppShell: React.FC<AppShellProps> = ({
           step={tourStep}
           onNext={onTourNext}
           onBack={onTourBack}
+          onRestart={onTourRestart}
           onEnd={onTourEnd}
         />
       )}

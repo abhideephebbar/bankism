@@ -12,6 +12,7 @@ interface AboutMenuProps {
   onSelectAccount: (userId: string) => void;
   onNewAccount: () => void;
   onReplayTour?: () => void;
+  onAttackDemo?: () => void;
   usedAccounts: AccountRef[];
   activeAccountId: string | null;
 }
@@ -28,6 +29,7 @@ export const AboutMenu: React.FC<AboutMenuProps> = ({
   onSelectAccount,
   onNewAccount,
   onReplayTour,
+  onAttackDemo,
   usedAccounts,
   activeAccountId,
 }) => {
@@ -132,6 +134,20 @@ export const AboutMenu: React.FC<AboutMenuProps> = ({
               }}
             >
               Replay tour
+            </button>
+          )}
+
+          {onAttackDemo && (
+            <button
+              type="button"
+              role="menuitem"
+              className="about-menu-item"
+              onClick={() => {
+                setIsOpen(false);
+                onAttackDemo();
+              }}
+            >
+              Run attack demo
             </button>
           )}
 

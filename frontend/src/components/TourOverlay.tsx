@@ -33,6 +33,7 @@ interface TourOverlayProps {
   step: number;
   onNext: () => void;
   onBack: () => void;
+  onRestart: () => void;
   onEnd: () => void;
 }
 
@@ -40,7 +41,7 @@ interface TourOverlayProps {
  * Lightweight spotlight tour: highlights one area at a time with a fixed
  * caption card. Spotlight is a CSS class toggled on the target element.
  */
-export const TourOverlay: React.FC<TourOverlayProps> = ({ step, onNext, onBack, onEnd }) => {
+export const TourOverlay: React.FC<TourOverlayProps> = ({ step, onNext, onBack, onRestart, onEnd }) => {
   const current = STEPS[Math.min(step, STEPS.length - 1)];
   const isFirst = step === 0;
   const isLast = step === STEPS.length - 1;
@@ -72,6 +73,9 @@ export const TourOverlay: React.FC<TourOverlayProps> = ({ step, onNext, onBack, 
               Back
             </button>
           )}
+          <button type="button" className="btn btn-secondary" onClick={onRestart} style={{ fontSize: 12 }}>
+            Restart
+          </button>
           <button type="button" className="btn btn-secondary" onClick={onEnd} style={{ fontSize: 12 }}>
             End tour
           </button>
