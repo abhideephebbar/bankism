@@ -406,6 +406,21 @@ body::before {
   flex-shrink: 0;
 }
 
+/* Waking state: pulsing dot signals an automatic retry is in flight. */
+.availability-banner.banner-waking .banner-dot {
+  animation: banner-pulse 1.2s var(--ease-out) infinite;
+}
+
+@keyframes banner-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Details disclosure ("View details")                                 */
 /* ------------------------------------------------------------------ */

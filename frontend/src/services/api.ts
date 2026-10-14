@@ -29,6 +29,12 @@ export class ApiHttpError extends Error {
 
 export type SystemErrorKind = 'TIMEOUT' | 'NETWORK' | 'MALFORMED_RESPONSE';
 
+// The hosted backend (Render free tier) sleeps after ~15 minutes idle and a
+// cold start can take well over 30s. Render holds incoming requests during
+// spin-up, so a patient client gets a real answer instead of an error.
+const HEALTH_TIMEOUT_MS = 60_000;
+const REQUEST_TIMEOUT_MS = 60_000;
+
 export class ApiSystemError extends Error {
   readonly kind: SystemErrorKind;
 
@@ -71,7 +77,7 @@ export function buildEvaluatePayload(
  */
 export async function checkHealth(signal?: AbortSignal): Promise<HealthResponse> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 25000);
+  const timeoutId = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
 
   const combinedSignal = signal
     ? createMergedAbortSignal(signal, controller.signal)
@@ -110,7 +116,10 @@ export async function checkHealth(signal?: AbortSignal): Promise<HealthResponse>
       throw err;
     }
     if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new ApiSystemError('TIMEOUT', 'Health check timed out after 4 seconds');
+      throw new ApiSystemError(
+        'TIMEOUT',
+        `Health check timed out after ${HEALTH_TIMEOUT_MS / 1000} seconds`
+      );
     }
     throw new ApiSystemError(
       'NETWORK',
@@ -120,7 +129,8 @@ export async function checkHealth(signal?: AbortSignal): Promise<HealthResponse>
 }
 
 /**
- * Evaluate request: POST /api/v1/evaluate with ~8 second timeout.
+ * Evaluate request: POST /api/v1/evaluate with a generous timeout so a hosted
+ * instance waking from idle sleep can still answer.
  * Re-evaluates without side-effects. Returns fresh Verdict.
  */
 export async function evaluateRequest(
@@ -128,7 +138,7 @@ export async function evaluateRequest(
   signal?: AbortSignal
 ): Promise<Verdict> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   const combinedSignal = signal
     ? createMergedAbortSignal(signal, controller.signal)
@@ -177,7 +187,10 @@ export async function evaluateRequest(
       throw err;
     }
     if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new ApiSystemError('TIMEOUT', 'Evaluation request timed out after 8 seconds');
+      throw new ApiSystemError(
+        'TIMEOUT',
+        `Evaluation request timed out after ${REQUEST_TIMEOUT_MS / 1000} seconds`
+      );
     }
     throw new ApiSystemError(
       'NETWORK',
@@ -187,7 +200,8 @@ export async function evaluateRequest(
 }
 
 /**
- * Process request: POST /api/v1/process with ~8 second timeout.
+ * Process request: POST /api/v1/process with a generous timeout so a hosted
+ * instance waking from idle sleep can still answer.
  * Submits for server-side re-evaluation and execution.
  */
 export async function processRequest(
@@ -195,7 +209,7 @@ export async function processRequest(
   signal?: AbortSignal
 ): Promise<ProcessResponse> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   const combinedSignal = signal
     ? createMergedAbortSignal(signal, controller.signal)
@@ -244,7 +258,10 @@ export async function processRequest(
       throw err;
     }
     if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new ApiSystemError('TIMEOUT', 'Process request timed out after 8 seconds');
+      throw new ApiSystemError(
+        'TIMEOUT',
+        `Process request timed out after ${REQUEST_TIMEOUT_MS / 1000} seconds`
+      );
     }
     throw new ApiSystemError(
       'NETWORK',
@@ -275,7 +292,7 @@ export async function createDemoAccount(
   initialBalance: string
 ): Promise<DemoAccount> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/v1/demo/users`, {
@@ -323,7 +340,10 @@ export async function createDemoAccount(
       throw err;
     }
     if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new ApiSystemError('TIMEOUT', 'Account creation timed out after 8 seconds');
+      throw new ApiSystemError(
+        'TIMEOUT',
+        `Account creation timed out after ${REQUEST_TIMEOUT_MS / 1000} seconds`
+      );
     }
     throw new ApiSystemError(
       'NETWORK',
@@ -342,7 +362,7 @@ export async function fetchAccountSummary(
   signal?: AbortSignal
 ): Promise<DemoAccount> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   const combinedSignal = signal
     ? createMergedAbortSignal(signal, controller.signal)
@@ -392,7 +412,10 @@ export async function fetchAccountSummary(
       throw err;
     }
     if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new ApiSystemError('TIMEOUT', 'Account lookup timed out after 8 seconds');
+      throw new ApiSystemError(
+        'TIMEOUT',
+        `Account lookup timed out after ${REQUEST_TIMEOUT_MS / 1000} seconds`
+      );
     }
     throw new ApiSystemError(
       'NETWORK',

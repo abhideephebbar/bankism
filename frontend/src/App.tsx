@@ -113,6 +113,29 @@ function addToStoredAccountList(ref: StoredAccountRef): StoredAccountRef[] {
   return next;
 }
 
+// The hosted backend sleeps when idle and needs 30-60s to wake. Probe with
+// patience: a few spaced attempts, so the first visit after idle shows a
+// "waking up" state instead of an instant failure banner.
+const HEALTH_PROBE_ATTEMPTS = 4;
+const HEALTH_PROBE_RETRY_DELAY_MS = 8_000;
+
+async function probeHealth(
+  maxAttempts: number = HEALTH_PROBE_ATTEMPTS
+): Promise<HealthResponse> {
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    if (attempt > 1) {
+      await new Promise((resolve) => setTimeout(resolve, HEALTH_PROBE_RETRY_DELAY_MS));
+    }
+    try {
+      return await checkHealth();
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('Security service unreachable');
+}
+
 export const App: React.FC = () => {
   // Boot sequence: 'boot' plays the intro, 'exiting' cross-fades into the
   // interface, 'done' renders the shell.
@@ -128,6 +151,7 @@ export const App: React.FC = () => {
   const [healthData, setHealthData] = useState<HealthResponse | null>(null);
   const [healthRetryError, setHealthRetryError] = useState<string | null>(null);
   const [isRetryingHealth, setIsRetryingHealth] = useState(false);
+  const [isHealthWaking, setIsHealthWaking] = useState(false);
 
   // Account state. The backend is the source of truth for balances; this
   // object is only ever populated from backend responses.
@@ -199,14 +223,27 @@ export const App: React.FC = () => {
   const activeEvalAbortControllerRef = useRef<AbortController | null>(null);
 
   // Background health probe once the shell is up (e.g. session restored).
+  // Retries with a delay: a sleeping hosted instance answers once awake.
   useEffect(() => {
-    if (bootPhase === 'done' && !healthData) {
-      checkHealth()
-        .then((data) => setHealthData(data))
-        .catch(() => {
-          // Remains unavailable; the banner near the controls offers Retry.
-        });
-    }
+    if (bootPhase !== 'done' || healthData) return;
+    let cancelled = false;
+    setIsHealthWaking(true);
+    probeHealth()
+      .then((data) => {
+        if (cancelled) return;
+        setHealthData(data);
+        setHealthRetryError(null);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // Remains unavailable; the banner near the controls offers Retry.
+      })
+      .finally(() => {
+        if (!cancelled) setIsHealthWaking(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [bootPhase, healthData]);
 
   // Restore a previously created account (once, when leaving boot). Keyed
@@ -296,7 +333,7 @@ export const App: React.FC = () => {
     setIsRetryingHealth(true);
     setHealthRetryError(null);
     try {
-      const data = await checkHealth();
+      const data = await probeHealth();
       setHealthData(data);
       setHealthRetryError(null);
     } catch (err: unknown) {
@@ -565,6 +602,7 @@ export const App: React.FC = () => {
     coreState,
     healthData,
     isRetryingHealth,
+    isHealthWaking,
     healthRetryError,
     account,
     accountStatus,
@@ -640,6 +678,7 @@ interface AppShellProps {
   coreState: CoreState;
   healthData: HealthResponse | null;
   isRetryingHealth: boolean;
+  isHealthWaking: boolean;
   healthRetryError: string | null;
   account: DemoAccount | null;
   accountStatus: AccountStatus;
@@ -688,6 +727,7 @@ const AppShell: React.FC<AppShellProps> = ({
   coreState,
   healthData,
   isRetryingHealth,
+  isHealthWaking,
   healthRetryError,
   account,
   accountStatus,
@@ -748,10 +788,15 @@ const AppShell: React.FC<AppShellProps> = ({
       <main className="app-main">
         {/* Honest availability notice near the request controls */}
         {!healthData && (
-          <div className="availability-banner" role="status">
+          <div
+            className={`availability-banner${isHealthWaking ? ' banner-waking' : ''}`}
+            role="status"
+          >
             <span className="banner-dot" aria-hidden="true" />
             <span className="banner-text">
-              Security service unavailable. Requests cannot be evaluated right now.
+              {isHealthWaking
+                ? 'Security core is waking up — the hosted service sleeps when idle. Retrying automatically…'
+                : 'Security service unavailable. Requests cannot be evaluated right now.'}
               {healthRetryError && (
                 <span
                   className="font-mono"
@@ -761,14 +806,16 @@ const AppShell: React.FC<AppShellProps> = ({
                 </span>
               )}
             </span>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={onRetryHealth}
-              disabled={isRetryingHealth}
-            >
-              {isRetryingHealth ? 'Checking…' : 'Retry'}
-            </button>
+            {!isHealthWaking && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={onRetryHealth}
+                disabled={isRetryingHealth}
+              >
+                {isRetryingHealth ? 'Checking…' : 'Retry'}
+              </button>
+            )}
           </div>
         )}
 

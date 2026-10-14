@@ -1,7 +1,13 @@
 name: keepalive
 
-# Pings the hosted Bankism API every 10 minutes so the free Render instance
-# does not spin down between demos. Manual trigger included for convenience.
+# Pings the hosted Bankism API so the free Render instance does not spin
+# down between demos. Manual trigger included for convenience.
+#
+# Note: GitHub throttles scheduled workflows under load, so runs can land
+# hours apart — this ping alone cannot keep the service warm. For a truly
+# warm instance, also point a free external cron (e.g. UptimeRobot or
+# cron-job.org) at /health every ~10 minutes, or upgrade the Render
+# service to a paid always-on plan.
 on:
   schedule:
     - cron: "*/10 * * * *"
@@ -11,5 +17,18 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping /health
-        run: curl -sf -m 30 https://bankism-api-um72.onrender.com/health
+      # A sleeping instance can take 30-60s to answer: retry with a
+      # patient timeout so each run both wakes the service and verifies
+      # that it stayed up.
+      - name: Ping /health until awake
+        run: |
+          for attempt in 1 2 3; do
+            if curl -sf -m 90 https://bankism-api-um72.onrender.com/health; then
+              echo "Service is awake."
+              exit 0
+            fi
+            echo "Attempt $attempt failed; waiting 30s before retrying."
+            sleep 30
+          done
+          echo "Service did not answer after 3 attempts."
+          exit 1
